@@ -1,0 +1,114 @@
+# Visual Studio files
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.opendb
+
+# Visual Studio Code files
+.vscode/
+*.code-workspace
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Unreal Engine specific
+Binaries/
+Build/
+Debug/
+DerivedDataCache/
+Intermediate/
+Saved/
+Content/StarterContent/
+*.VC.db
+*.opensdf
+*.sdf
+*.sln
+*.suo
+*.xcodeproj
+*.xcworkspace
+
+# Don't ignore these files
+!Build/*/
+!Build/*/PakBlacklist*.txt
+
+# Mac/iOS specific
+.DS_Store
+*.swp
+*.lock
+profile
+xcuserdata
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Windows specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux specific
+*~
+
+# Project specific
+.idea/
+*.log
+
+# Large media files
+*.mp4
+*.mov
+*.wmv
+*.avi
+
+# Packaged game data
+*.pak
+
+# Rider IDE specific
+.idea/
+*.DotSettings.user
+modules.xml
+contentModel.xml
+workspace.xml
+
+# Generated documentation
+Documentation/
+
+# Don't ignore these specific file types even if they're in ignored directories
+!*.cpp
+!*.h
+!*.hpp
+!*.ini
+!*.uproject
+!*.uplugin
+!README.md
+!.gitignore
