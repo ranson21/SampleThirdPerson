@@ -10,6 +10,8 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystem.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 DEFINE_LOG_CATEGORY_STATIC(LogCharacterJump, Log, All);
@@ -147,26 +149,165 @@ void ASampleThirdPersonCharacter::Look(const FInputActionValue &Value)
   }
 }
 
-// Add these function implementations:
 void ASampleThirdPersonCharacter::Jump()
 {
-  UE_LOG(LogCharacterJump, Warning, TEXT("Jumping Character"))
-  if (GetCharacterMovement()->IsFalling())
+  UE_LOG(LogTemp, Warning, TEXT("Jump Called"));
+
+  // If we're falling and near a wall, perform wall jump
+  if (GetCharacterMovement()->IsFalling() && IsNearWall() && bCanWallJump)
+  {
+    // Get the wall normal to jump away from it
+    FVector WallNormal = GetWallNormal();
+
+    // Calculate jump direction (up + away from wall)
+    FVector JumpDirection = (WallNormal * WallJumpHorizontalForce) + FVector(0, 0, WallJumpForce);
+
+    // Launch character
+    LaunchCharacter(JumpDirection, true, true);
+
+    // Disable wall jump temporarily
+    bCanWallJump = false;
+
+    // Play effects
+    if (WallJumpEffect)
+    {
+      UGameplayStatics::SpawnEmitterAtLocation(
+          GetWorld(),
+          WallJumpEffect,
+          GetActorLocation(),
+          WallNormal.Rotation());
+    }
+
+    if (WallJumpSound)
+    {
+      UGameplayStatics::PlaySoundAtLocation(
+          this,
+          WallJumpSound,
+          GetActorLocation());
+    }
+
+    // Reset wall jump after cooldown
+    FTimerHandle UnusedHandle;
+    GetWorldTimerManager().SetTimer(
+        UnusedHandle,
+        this,
+        &ASampleThirdPersonCharacter::ResetWallJump,
+        WallJumpCooldown,
+        false);
+  }
+  // If we're falling but not near a wall, try double jump
+  else if (GetCharacterMovement()->IsFalling())
   {
     if (bCanDoubleJump)
     {
+      UE_LOG(LogTemp, Warning, TEXT("Double Jump"));
       GetCharacterMovement()->Velocity.Z = DoubleJumpZVelocity;
       bCanDoubleJump = false;
 
-      // Optionally play effects
-      // if (DoubleJumpEffect)
-      //     UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), DoubleJumpEffect, GetActorLocation());
+      if (DoubleJumpEffect)
+      {
+        UGameplayStatics::SpawnEmitterAtLocation(
+            GetWorld(),
+            DoubleJumpEffect,
+            GetActorLocation() + EffectOffset,
+            GetActorRotation());
+      }
+
+      if (DoubleJumpSound)
+      {
+        UGameplayStatics::PlaySoundAtLocation(
+            this,
+            DoubleJumpSound,
+            GetActorLocation(),
+            1.0f,
+            1.0f,
+            0.0f);
+      }
     }
   }
   else
   {
     Super::Jump();
   }
+}
+
+bool ASampleThirdPersonCharacter::IsNearWall() const
+{
+  FVector Start = GetActorLocation();
+
+  // Check in multiple directions around the character
+  TArray<FVector> Directions = {
+      GetActorRightVector(),
+      -GetActorRightVector(),
+      GetActorForwardVector(),
+      -GetActorForwardVector()};
+
+  for (const FVector &Direction : Directions)
+  {
+    FHitResult HitResult;
+    FCollisionQueryParams QueryParams;
+    QueryParams.AddIgnoredActor(this);
+
+    FVector End = Start + (Direction * WallDetectionRange);
+
+    // Perform line trace
+    if (GetWorld()->LineTraceSingleByChannel(
+            HitResult,
+            Start,
+            End,
+            ECC_Visibility,
+            QueryParams))
+    {
+      // Check if we hit something we can wall jump from
+      if (HitResult.GetComponent() && HitResult.GetComponent()->IsSimulatingPhysics() == false)
+      {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+FVector ASampleThirdPersonCharacter::GetWallNormal() const
+{
+  FVector Start = GetActorLocation();
+
+  // Check in multiple directions around the character
+  TArray<FVector> Directions = {
+      GetActorRightVector(),
+      -GetActorRightVector(),
+      GetActorForwardVector(),
+      -GetActorForwardVector()};
+
+  for (const FVector &Direction : Directions)
+  {
+    FHitResult HitResult;
+    FCollisionQueryParams QueryParams;
+    QueryParams.AddIgnoredActor(this);
+
+    FVector End = Start + (Direction * WallDetectionRange);
+
+    if (GetWorld()->LineTraceSingleByChannel(
+            HitResult,
+            Start,
+            End,
+            ECC_Visibility,
+            QueryParams))
+    {
+      if (HitResult.GetComponent() && HitResult.GetComponent()->IsSimulatingPhysics() == false)
+      {
+        return HitResult.Normal;
+      }
+    }
+  }
+
+  return FVector::UpVector;
+}
+
+void ASampleThirdPersonCharacter::ResetWallJump()
+{
+  bCanWallJump = true;
 }
 
 void ASampleThirdPersonCharacter::Landed(const FHitResult &Hit)
